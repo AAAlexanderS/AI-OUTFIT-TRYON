@@ -204,7 +204,7 @@ const App: React.FC = () => {
     }
     
     setIsGenerating(true);
-    setCountdown(20); // Estimated generation time: 20s
+    setCountdown(30); // Estimated generation time: 20s
     setError(null);
     setGeneratedImage(null);
 
