@@ -372,7 +372,7 @@ const App: React.FC = () => {
            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 z-20">
              <div className="flex justify-between items-center mb-4">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Daily Usage</span>
-                <div className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-center px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                     <span className={`text-[10px] font-mono font-medium ${dailyCount >= DAILY_LIMIT ? 'text-rose-500' : 'text-slate-600 dark:text-slate-400'}`}>
                         {DAILY_LIMIT - dailyCount} / {DAILY_LIMIT} runs left
                     </span>
