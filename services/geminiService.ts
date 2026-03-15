@@ -54,7 +54,7 @@ const processItem = async (item: ClothingItem) => {
 };
 
 export const generateOutfit = async (state: AppState): Promise<string> => {
-  const apiKey = import.meta.env.VITE_GEMINI_API_KEY || (window as any).GEMINI_API_KEY;
+  const apiKey = "AIzaSyCKq_GepN2r0W7CTLSVcxKBRvi53ycAGKI";
   if (!apiKey) throw new Error("API Key not found");
 
   const ai = new GoogleGenAI({ apiKey });
