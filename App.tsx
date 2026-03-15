@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { AppState, INITIAL_WARDROBE, Wardrobe, ClothingItem, AssetLibrary } from './types';
 import { ImageUploader } from './components/ImageUploader';
 import { AssetLibraryModal } from './components/AssetLibrary';
-import { generateOutfit, generateOutfitVideo } from './services/geminiService';
+import { generateOutfit } from './services/geminiService';
 import { PRESETS } from './constants';
 
 const DAILY_LIMIT = 10;
@@ -24,39 +24,7 @@ const SectionTitle: React.FC<{ children: React.ReactNode, index: string }> = ({ 
   </div>
 );
 
-declare global {
-  interface Window {
-    aistudio?: {
-      hasSelectedApiKey: () => Promise<boolean>;
-      openSelectKey: () => Promise<void>;
-    };
-  }
-}
-
 const App: React.FC = () => {
-  const [hasApiKey, setHasApiKey] = useState<boolean | null>(null);
-
-  useEffect(() => {
-    const checkApiKey = async () => {
-      if (window.aistudio) {
-        const hasKey = await window.aistudio.hasSelectedApiKey();
-        setHasApiKey(hasKey);
-      } else {
-        // Fallback for local development or if aistudio is not injected
-        setHasApiKey(true);
-      }
-    };
-    checkApiKey();
-  }, []);
-
-  const handleSelectKey = async () => {
-    if (window.aistudio) {
-      await window.aistudio.openSelectKey();
-      // Assume success to mitigate race conditions
-      setHasApiKey(true);
-    }
-  };
-
   // Asset Library State (Starts with PRESETS)
   const [assetLibrary, setAssetLibrary] = useState<AssetLibrary>(PRESETS);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
@@ -70,10 +38,6 @@ const App: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
-  const [videoCountdown, setVideoCountdown] = useState<number | null>(null);
-  const [generatedVideo, setGeneratedVideo] = useState<string | null>(null);
-  const [videoPrompt, setVideoPrompt] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [dailyCount, setDailyCount] = useState<number>(0);
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -240,10 +204,9 @@ const App: React.FC = () => {
     }
     
     setIsGenerating(true);
-    setCountdown(20); // Estimated generation time: 20s
+    setCountdown(30); // Estimated generation time: 20s
     setError(null);
     setGeneratedImage(null);
-    setGeneratedVideo(null);
 
     // Start timer
     const timer = setInterval(() => {
@@ -267,65 +230,8 @@ const App: React.FC = () => {
     }
   };
 
-  const handleGenerateVideo = async () => {
-    if (!generatedImage) return;
-    
-    setIsGeneratingVideo(true);
-    setVideoCountdown(60); // Estimated generation time: 60s
-    setError(null);
-    setGeneratedVideo(null);
-
-    // Start timer
-    const timer = setInterval(() => {
-        setVideoCountdown((prev) => {
-            if (prev === null || prev <= 1) return 1; // Hold at 1s if generation takes longer
-            return prev - 1;
-        });
-    }, 1000);
-
-    try {
-      const videoUrl = await generateOutfitVideo(generatedImage, videoPrompt);
-      setGeneratedVideo(videoUrl);
-    } catch (err: any) {
-      console.error("Video generation error:", err);
-      setError(err.message || "Failed to generate video. Please try again.");
-    } finally {
-      clearInterval(timer);
-      setVideoCountdown(null);
-      setIsGeneratingVideo(false);
-    }
-  };
-
-  if (hasApiKey === false) {
-    return (
-      <div className="h-[100dvh] w-full bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full p-8 bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 text-center">
-          <div className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold mb-4">API Key Required</h2>
-          <p className="text-slate-600 dark:text-slate-400 mb-8">
-            To use the advanced video generation features, you need to provide your Gemini API key.
-            <br/><br/>
-            <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noreferrer" className="text-indigo-600 dark:text-indigo-400 hover:underline">
-              Learn more about billing and API keys
-            </a>
-          </p>
-          <button
-            onClick={handleSelectKey}
-            className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors"
-          >
-            Select API Key
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="h-[100dvh] w-full bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans overflow-hidden flex flex-col relative selection:bg-indigo-500/30 selection:text-indigo-200 transition-colors duration-300">
+    <div className="h-screen w-full bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-50 font-sans overflow-hidden flex flex-col relative selection:bg-indigo-500/30 selection:text-indigo-200 transition-colors duration-300">
       
       {/* Background Ambience - Subtle */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
@@ -370,23 +276,20 @@ const App: React.FC = () => {
       </header>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden z-10 relative">
+      <div className="flex-1 flex overflow-hidden z-10 relative">
         
-        {/* Left Panel (Dashboard) - Reduced width to 320px on desktop, full width on mobile */}
-        <div className="w-full md:w-[320px] flex-shrink-0 h-auto md:h-full flex flex-col bg-white dark:bg-slate-950 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 transition-colors duration-300">
+        {/* Left Panel (Dashboard) - Reduced width to 320px */}
+        <div className="w-[320px] flex-shrink-0 h-full flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 transition-colors duration-300">
            
-           <div className="flex-1 overflow-x-auto md:overflow-x-hidden md:overflow-y-auto custom-scrollbar p-3 md:p-4 pb-0 flex flex-row md:flex-col gap-3 md:gap-0 items-center md:items-stretch">
+           <div className="flex-1 overflow-y-auto custom-scrollbar p-4 pb-0">
              
              {/* 01. IDENTITY */}
-             <div className="mb-0 md:mb-6 flex-shrink-0">
-               <div className="hidden md:block">
-                 <SectionTitle index="01">Identity</SectionTitle>
-               </div>
+             <div className="mb-6">
+               <SectionTitle index="01">Identity</SectionTitle>
                
-               <div className="w-24 h-24 md:w-full md:h-auto">
+               <div className="w-full aspect-square">
                   <ImageUploader 
                       label="Profile Photo"
-                      aspectRatio="w-full aspect-square"
                       maxFiles={1}
                       previewUrl={state.profilePreviewUrl}
                       onRandomize={randomizeProfile}
@@ -397,15 +300,13 @@ const App: React.FC = () => {
              </div>
 
              {/* 02. GARMENTS */}
-             <div className="pb-0 md:pb-6 flex flex-row md:flex-col gap-3">
-                <div className="hidden md:block">
-                   <SectionTitle index="02">Garments</SectionTitle>
-                </div>
+             <div className="pb-6">
+                <SectionTitle index="02">Garments</SectionTitle>
                 
-                <div className="flex flex-row md:flex-col gap-3">
+                <div className="flex flex-col gap-3">
                    {/* Row 1: Upper & Lower Body */}
-                   <div className="flex flex-row md:grid md:grid-cols-2 gap-3">
-                      <div className="h-20 w-16 md:w-auto md:h-40 flex-shrink-0">
+                   <div className="grid grid-cols-2 gap-3">
+                      <div className="h-40">
                           <ImageUploader 
                              label="Upper Body"
                              maxFiles={2}
@@ -415,7 +316,7 @@ const App: React.FC = () => {
                              onRemove={(id) => removeWardrobeItem('upperBody', id)}
                            />
                       </div>
-                      <div className="h-20 w-16 md:w-auto md:h-40 flex-shrink-0">
+                      <div className="h-40">
                           <ImageUploader 
                              label="Lower Body"
                              maxFiles={2}
@@ -428,8 +329,8 @@ const App: React.FC = () => {
                    </div>
 
                    {/* Row 2: Accessories */}
-                   <div className="flex flex-row md:grid md:grid-cols-3 gap-3">
-                      <div className="w-16 h-16 md:w-auto md:aspect-square flex-shrink-0">
+                   <div className="grid grid-cols-3 gap-3">
+                      <div className="aspect-square">
                           <ImageUploader 
                              label="Headwear"
                              compact
@@ -440,7 +341,7 @@ const App: React.FC = () => {
                              onRemove={(id) => removeWardrobeItem('headwear', id)}
                           />
                       </div>
-                      <div className="w-16 h-16 md:w-auto md:aspect-square flex-shrink-0">
+                      <div className="aspect-square">
                           <ImageUploader 
                              label="Accessories"
                              compact
@@ -451,7 +352,7 @@ const App: React.FC = () => {
                              onRemove={(id) => removeWardrobeItem('accessories', id)}
                           />
                       </div>
-                      <div className="w-16 h-16 md:w-auto md:aspect-square flex-shrink-0">
+                      <div className="aspect-square">
                           <ImageUploader 
                              label="Shoes"
                              compact
@@ -468,12 +369,12 @@ const App: React.FC = () => {
            </div>
 
            {/* Footer */}
-           <div className="p-3 md:p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 z-20">
-             <div className="flex justify-between items-center mb-2 md:mb-4">
-                <span className="hidden md:inline text-[10px] font-bold text-slate-500 uppercase tracking-widest">Daily Usage</span>
-                <div className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 ml-auto md:ml-0">
+           <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 z-20">
+             <div className="flex justify-between items-center mb-4">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Daily Usage</span>
+                <div className="flex items-center justify-center px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                     <span className={`text-[10px] font-mono font-medium ${dailyCount >= DAILY_LIMIT ? 'text-rose-500' : 'text-slate-600 dark:text-slate-400'}`}>
-                        {DAILY_LIMIT - dailyCount} / {DAILY_LIMIT} <span className="hidden md:inline">runs left</span>
+                        {DAILY_LIMIT - dailyCount} / {DAILY_LIMIT} runs left
                     </span>
                 </div>
              </div>
@@ -482,7 +383,7 @@ const App: React.FC = () => {
                 onClick={handleGenerate}
                 disabled={isGenerating || dailyCount >= DAILY_LIMIT}
                 className={`
-                  w-full py-2.5 md:py-3.5 rounded-lg font-bold text-xs tracking-widest uppercase
+                  w-full py-3.5 rounded-lg font-bold text-xs tracking-widest uppercase
                   flex items-center justify-center gap-2 transition-all duration-300 shadow-sm
                   ${isGenerating || dailyCount >= DAILY_LIMIT
                     ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 cursor-not-allowed' 
@@ -512,109 +413,25 @@ const App: React.FC = () => {
         </div>
 
         {/* Right Panel - Preview */}
-        <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-black/50 relative overflow-y-auto md:overflow-hidden">
+        <div className="flex-1 flex items-center justify-center bg-slate-50 dark:bg-black/50 relative">
             {/* Background Grid */}
            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
            
            {generatedImage ? (
-             <div className="relative w-full h-full p-4 md:p-10 flex flex-col items-center justify-center animate-fadeIn z-10">
-                {generatedVideo && (
-                  <button 
-                    onClick={() => setGeneratedVideo(null)}
-                    className="absolute top-4 left-4 z-20 bg-white/80 dark:bg-slate-800/80 backdrop-blur text-slate-900 dark:text-white px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-md flex items-center gap-2 hover:scale-105 transition-transform"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                    Back to Image
-                  </button>
-                )}
-                
-                <div className={`relative w-full flex-1 flex ${generatedVideo ? 'flex-col md:flex-row gap-4 md:gap-6' : 'flex-col min-h-0'} items-center justify-center`}>
-                  <div className={`relative rounded-lg overflow-hidden shadow-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group flex items-center justify-center ${generatedVideo ? 'w-full md:flex-1 aspect-square max-h-[45vh] md:max-h-[65vh]' : 'h-full max-h-[60vh] md:max-h-[75vh] w-auto'}`}>
-                    <img src={generatedImage} alt="Generated Outfit" className="max-h-full max-w-full object-contain" />
-                    <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
-                       <a 
-                         href={generatedImage} 
-                         download={`outfit_tryon_${Date.now()}.png`}
-                         className="bg-white text-black px-4 py-2 md:px-5 md:py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl flex items-center gap-2 hover:scale-105 transition-transform whitespace-nowrap"
-                       >
-                         Download Image
-                       </a>
-                    </div>
-                  </div>
+             <div className="relative w-full h-full p-10 flex items-center justify-center animate-fadeIn z-10">
+                <div className="relative max-h-full rounded-lg overflow-hidden shadow-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group">
+                  <img src={generatedImage} alt="Generated Outfit" className="max-h-[85vh] w-auto object-contain" />
                   
-                  {generatedVideo && (
-                    <div className="relative rounded-lg overflow-hidden shadow-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 group flex items-center justify-center w-full md:flex-1 aspect-square max-h-[45vh] md:max-h-[65vh] mt-4 md:mt-0">
-                      <video src={generatedVideo} autoPlay loop muted controls className="w-full h-full object-cover" />
-                      <div className="absolute bottom-4 md:bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex gap-2">
-                         <a 
-                           href={generatedVideo} 
-                           download={`outfit_tryon_${Date.now()}.mp4`}
-                           className="bg-white text-black px-4 py-2 md:px-5 md:py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl flex items-center gap-2 hover:scale-105 transition-transform whitespace-nowrap"
-                         >
-                           Download Video
-                         </a>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                
-                {!generatedVideo && (
-                  <div className="mt-6 flex-shrink-0 w-full max-w-md flex flex-col items-center gap-3">
-                    <div className="w-full relative">
-                      <input 
-                        type="text" 
-                        value={videoPrompt}
-                        onChange={(e) => setVideoPrompt(e.target.value)}
-                        placeholder="Describe the model's action (e.g., walking, turning)"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all shadow-sm"
-                        disabled={isGeneratingVideo}
-                      />
-                    </div>
-                    
-                    <div className="flex flex-wrap justify-center gap-2 w-full">
-                      {[
-                        "Walking forward confidently", 
-                        "Turning around 360 degrees", 
-                        "Posing with hands on hips", 
-                        "Walking as if on a runway"
-                      ].map((preset) => (
-                        <button
-                          key={preset}
-                          onClick={() => setVideoPrompt(preset)}
-                          disabled={isGeneratingVideo}
-                          className="px-3 py-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-full text-[10px] font-medium transition-colors"
-                        >
-                          {preset}
-                        </button>
-                      ))}
-                    </div>
-
-                    <button 
-                      onClick={handleGenerateVideo}
-                      disabled={isGeneratingVideo}
-                      className={`
-                        mt-2 px-8 py-3 rounded-full font-bold text-xs tracking-widest uppercase
-                        flex items-center justify-center gap-2 transition-all duration-300 shadow-md w-full sm:w-auto
-                        ${isGeneratingVideo
-                          ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed' 
-                          : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-500/30'
-                        }
-                      `}
-                    >
-                      {isGeneratingVideo ? (
-                        <>
-                          <svg className="animate-spin -ml-1 h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                          <span>Generating Video {videoCountdown !== null ? `(${videoCountdown}s)` : '...'}</span>
-                        </>
-                      ) : (
-                        <>Generate 360° Video</>
-                      )}
-                    </button>
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                     <a 
+                       href={generatedImage} 
+                       download={`outfit_tryon_${Date.now()}.png`}
+                       className="bg-white text-black px-5 py-2.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-xl flex items-center gap-2 hover:scale-105 transition-transform"
+                     >
+                       Download Image
+                     </a>
                   </div>
-                )}
+                </div>
              </div>
            ) : (
              <div className="text-center opacity-40 select-none pointer-events-none">
