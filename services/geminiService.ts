@@ -184,3 +184,80 @@ HARD RULES
     throw error;
   }
 };
+
+export const generateOutfitVideo = async (imageUrl: string, prompt?: string): Promise<string> => {
+  const apiKey = process.env.API_KEY;
+  if (!apiKey) throw new Error("API Key not found");
+
+  const ai = new GoogleGenAI({ apiKey });
+
+  // Extract base64 and mimeType from data URL
+  const matches = imageUrl.match(/^data:(.+);base64,(.+)$/);
+  if (!matches || matches.length !== 3) {
+    throw new Error("Invalid image URL format");
+  }
+  const mimeType = matches[1];
+  const base64EncodeString = matches[2];
+
+  const defaultPrompt = 'A 360 degree video showing the person and their outfit from every angle, rotating smoothly.';
+  const finalPrompt = prompt ? `${prompt}. High quality, photorealistic, smooth motion.` : defaultPrompt;
+
+  let operation = await ai.models.generateVideos({
+    model: 'veo-3.1-fast-generate-preview',
+    prompt: finalPrompt,
+    image: {
+      imageBytes: base64EncodeString,
+      mimeType: mimeType,
+    },
+    config: {
+      numberOfVideos: 1,
+      resolution: '720p',
+      aspectRatio: '9:16'
+    }
+  });
+
+  let currentApiKey = apiKey;
+  while (!operation.done) {
+    await new Promise(resolve => setTimeout(resolve, 10000));
+    // Re-instantiate to ensure we have the latest API key if it was updated
+    currentApiKey = process.env.API_KEY || apiKey;
+    if (!currentApiKey) throw new Error("API Key not found during polling");
+    const currentAi = new GoogleGenAI({ apiKey: currentApiKey });
+    
+    try {
+        // The SDK expects the operation object itself or { name: operation.name }
+        operation = await currentAi.operations.getVideosOperation({ operation: operation });
+    } catch (e) {
+        console.error("Error polling operation:", e);
+        // Sometimes the API returns 404 or other errors temporarily, we can retry a few times
+        // but for now we'll just throw
+        throw e;
+    }
+  }
+
+  // Check if the operation has an error
+  if (operation.error) {
+    console.error("Video generation operation failed:", operation.error);
+    throw new Error(`Video generation failed: ${operation.error.message || 'Unknown error'}`);
+  }
+
+  const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+  if (!downloadLink) {
+    console.error("Operation completed but no video URI found:", operation);
+    throw new Error("No video generated. The operation may have failed or been blocked.");
+  }
+
+  const response = await fetch(downloadLink, {
+    method: 'GET',
+    headers: {
+      'x-goog-api-key': currentApiKey,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch video: ${response.statusText}`);
+  }
+
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+};

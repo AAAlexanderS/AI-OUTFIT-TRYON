@@ -78,21 +78,21 @@ export const AssetLibraryModal: React.FC<AssetLibraryProps> = ({ isOpen, onClose
         </div>
 
         {/* Content */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col md:flex-row flex-1 overflow-hidden">
           
           {/* Sidebar Tabs */}
-          <div className="w-48 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col p-2 gap-1 overflow-y-auto">
+          <div className="w-full md:w-48 flex-shrink-0 bg-slate-50 dark:bg-slate-950 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 flex flex-row md:flex-col p-2 gap-1 overflow-x-auto md:overflow-y-auto custom-scrollbar">
             {CATEGORIES.map(cat => (
               <button
                 key={cat.key}
                 onClick={() => setActiveTab(cat.key)}
-                className={`text-left px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all ${
+                className={`text-left px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex-shrink-0 whitespace-nowrap ${
                   activeTab === cat.key 
                     ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-white shadow-sm border border-slate-200 dark:border-slate-700' 
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-800'
                 }`}
               >
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-center gap-2">
                   <span>{cat.label}</span>
                   <span className={`text-[9px] px-1.5 py-0.5 rounded ${activeTab === cat.key ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-500'}`}>{library[cat.key].length}</span>
                 </div>
@@ -101,7 +101,7 @@ export const AssetLibraryModal: React.FC<AssetLibraryProps> = ({ isOpen, onClose
           </div>
 
           {/* Grid Area */}
-          <div className="flex-1 bg-white dark:bg-slate-900 flex flex-col">
+          <div className="flex-1 bg-white dark:bg-slate-900 flex flex-col min-h-0">
             
             {/* Action Bar */}
             <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900">
@@ -128,7 +128,7 @@ export const AssetLibraryModal: React.FC<AssetLibraryProps> = ({ isOpen, onClose
             </div>
 
             {/* Grid */}
-            <div className="flex-1 overflow-y-auto p-6 custom-scrollbar bg-slate-50/50 dark:bg-black/20">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-slate-50/50 dark:bg-black/20">
               {library[activeTab].length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-600">
                    <svg className="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>

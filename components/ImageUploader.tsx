@@ -12,6 +12,7 @@ interface ImageUploaderProps {
   compact?: boolean;
   aspectRatio?: string;
   maxFiles?: number;
+  objectFit?: 'cover' | 'contain';
 }
 
 export const ImageUploader: React.FC<ImageUploaderProps> = ({ 
@@ -24,7 +25,8 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   onRandomize,
   compact = false,
   aspectRatio,
-  maxFiles = 1
+  maxFiles = 1,
+  objectFit = 'cover'
 }) => {
   
   const displayImages = previewUrl 
@@ -41,13 +43,13 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
   const isMulti = maxFiles > 1;
 
   // Optimized aspect ratios
-  // If no aspectRatio prop is provided, we default to full h/w fit or specific ratios based on context
-  const dimensionClass = aspectRatio || 'h-full w-full';
+  // If no aspectRatio prop is provided, we default to flex-1 to fill the remaining height in the flex column
+  const dimensionClass = aspectRatio || 'flex-1 w-full min-h-0';
 
   return (
     <div className="flex flex-col h-full group/uploader">
       {label && (
-        <div className="flex justify-between items-center mb-1.5 px-0.5">
+        <div className="hidden md:flex justify-between items-center mb-1.5 px-0.5 flex-shrink-0">
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none">
             {label}
           </span>
@@ -78,7 +80,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
                   <img 
                     src={img.previewUrl} 
                     alt="Upload" 
-                    className="w-full h-full object-cover" 
+                    className={`w-full h-full ${objectFit === 'contain' ? 'object-contain bg-slate-100 dark:bg-slate-800' : 'object-cover'}`} 
                   />
                   
                   {/* Remove Button */}
